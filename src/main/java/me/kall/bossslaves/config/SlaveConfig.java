@@ -6,24 +6,24 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.kall.bossslaves.BossSlaves;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.random.SimpleWeightedRandomList;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, modid = BossSlaves.MOD_ID)
+@EventBusSubscriber( modid = BossSlaves.MOD_ID)
 public class SlaveConfig {
-    public static final ForgeConfigSpec INSTANCE;
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SLAVES;
+    public static final ModConfigSpec INSTANCE;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> SLAVES;
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
         builder.push(BossSlaves.MOD_NAME);
-        SLAVES = builder.comment("Entry format: bossRegistryName->slave1RegistryName,weight;slave2RegistryName,weight;...;slaveXRegistryName,weight->maxSlavesCount", "Weight is omittable.").defineListAllowEmpty("BossSlavesEntries", Lists.newArrayList("minecraft:wither->minecraft:wither_skeleton;minecraft:skeleton->4", "minecraft:ender_dragon->minecraft:enderman->4"), Predicates.alwaysTrue());
+        SLAVES = builder.comment("Entry format: bossRegistryName->slave1RegistryName,weight;slave2RegistryName,weight;...;slaveXRegistryName,weight->maxSlavesCount", "Weight is omittable.").defineListAllowEmpty("BossSlavesEntries", Lists.newArrayList("minecraft:wither->minecraft:wither_skeleton;minecraft:skeleton->4", "minecraft:ender_dragon->minecraft:enderman->4"), () -> "bossRegistryName->slave1RegistryName,weight;slave2RegistryName,weight;...;slaveXRegistryName,weight->maxSlavesCount", Predicates.alwaysTrue());
         builder.pop();
         INSTANCE = builder.build();
     }

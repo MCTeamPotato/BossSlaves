@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import me.kall.bossslaves.config.SlaveConfig;
 import me.kall.bossslaves.ext.Boss;
 import me.kall.bossslaves.ext.Slave;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.random.SimpleWeightedRandomList;
@@ -11,17 +12,17 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -35,10 +36,10 @@ public final class BossSlaves {
     public static final String MOD_NAME = "BossSlaves";
     public static final Logger LOGGER = LogManager.getLogger(MOD_NAME);
 
-    public BossSlaves(@NotNull FMLJavaModLoadingContext context) {
-        context.registerConfig(ModConfig.Type.COMMON, SlaveConfig.INSTANCE);
+    public BossSlaves(IEventBus modBus, Dist dist, @NotNull ModContainer container) {
+        container.registerConfig(ModConfig.Type.COMMON, SlaveConfig.INSTANCE);
 
-        IEventBus forgeBus = MinecraftForge.EVENT_BUS;
+        IEventBus forgeBus = NeoForge.EVENT_BUS;
         forgeBus.addListener(this::tickBoss);
         forgeBus.addListener(EventPriority.LOWEST, this::slaveDamage);
         forgeBus.addListener(this::onBossLeave);
@@ -46,10 +47,9 @@ public final class BossSlaves {
         forgeBus.addListener(EventPriority.LOW, this::slaveTargetDetection);
     }
 
-    public void tickBoss(LivingEvent.@NotNull LivingTickEvent event) {
-        LivingEntity entity = event.getEntity();
-        if (entity instanceof Boss boss && boss.bossSlaves$isBoss() && boss.boss$slaves().isEmpty() && entity.level() instanceof ServerLevel level && level.getServer().getTickCount() % 200 == 0) {
-            SlaveConfig.Slaves configSlaves = SlaveConfig.BOSS_SLAVES.get(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()));
+    public void tickBoss(EntityTickEvent.@NotNull Post event) {
+        if (event.getEntity() instanceof LivingEntity entity && entity instanceof Boss boss && boss.bossSlaves$isBoss() && boss.boss$slaves().isEmpty() && entity.level() instanceof ServerLevel level && level.getServer().getTickCount() % 200 == 0) {
+            SlaveConfig.Slaves configSlaves = SlaveConfig.BOSS_SLAVES.get(BuiltInRegistries.ENTITY_TYPE.getKeyOrNull(entity.getType()));
             if (configSlaves == null) return;
             SimpleWeightedRandomList<ResourceLocation> weightedSlaveList = configSlaves.slaves();
             if (weightedSlaveList.isEmpty()) return;
@@ -57,7 +57,7 @@ public final class BossSlaves {
             List<EntityType<?>> slaves = new ObjectArrayList<>();
 
             for (int i = 0; i < configSlaves.maxCount(); i++) {
-                slaves.add(weightedSlaveList.getRandomValue(level.getRandom()).map(ForgeRegistries.ENTITY_TYPES::getValue).orElseThrow());
+                slaves.add(weightedSlaveList.getRandomValue(level.getRandom()).map(id -> BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElseThrow()).orElseThrow());
             }
 
             for (EntityType<?> type : slaves) {
@@ -79,7 +79,7 @@ public final class BossSlaves {
         }
     }
 
-    public void slaveDamage(@NotNull LivingAttackEvent event) {
+    public void slaveDamage(@NotNull LivingIncomingDamageEvent event) {
         if (event.isCanceled()) return;
         LivingEntity entity = event.getEntity();
         if (entity instanceof Slave slave && slave.boss$isSlave()) {
@@ -93,12 +93,12 @@ public final class BossSlaves {
 
     public void bossTargetChange(@NotNull LivingChangeTargetEvent event) {
         LivingEntity entity = event.getEntity();
-        if (entity.level() instanceof ServerLevel level && event.getNewTarget() != null) {
+        if (entity.level() instanceof ServerLevel level && event.getNewAboutToBeSetTarget() != null) {
             if (entity instanceof Boss boss && boss.bossSlaves$isBoss() && !boss.boss$slaves().isEmpty()) {
                 for (int id : boss.boss$slaves()) {
                     Entity slave = level.getEntity(id);
                     if (slave instanceof Mob) {
-                        ((Mob) slave).setTarget(event.getNewTarget());
+                        ((Mob) slave).setTarget(event.getNewAboutToBeSetTarget());
                     }
                 }
             }
@@ -107,10 +107,10 @@ public final class BossSlaves {
 
     public void slaveTargetDetection(@NotNull LivingChangeTargetEvent event) {
         LivingEntity entity = event.getEntity();
-        if (entity.level() instanceof ServerLevel level && event.getNewTarget() != null) {
+        if (entity.level() instanceof ServerLevel level && event.getNewAboutToBeSetTarget() != null) {
             if (entity instanceof Slave slave && slave.boss$isSlave() && level.getEntity(slave.boss$slaveOwner()) instanceof Mob boss) {
                 if (boss.getTarget() == null) {
-                    boss.setTarget(event.getNewTarget());
+                    boss.setTarget(event.getNewAboutToBeSetTarget());
                 } else {
                     event.setCanceled(true);
                 }

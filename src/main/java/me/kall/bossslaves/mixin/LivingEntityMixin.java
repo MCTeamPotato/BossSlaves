@@ -11,7 +11,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.Tags;
+import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,7 +34,7 @@ public abstract class LivingEntityMixin implements Boss, Slave {
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
-    private void write(CompoundTag compound, CallbackInfo ci) {
+    private void write(@NotNull CompoundTag compound, CallbackInfo ci) {
         compound.putBoolean("BossSlavesIsBoss", this.bossSlaves$isBoss());
         compound.putBoolean("BossSlavesIsSlave", this.boss$isSlave());
         compound.putIntArray("BossSlaves", this.boss$slaves().toIntArray());
@@ -42,7 +42,7 @@ public abstract class LivingEntityMixin implements Boss, Slave {
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
-    private void read(CompoundTag compound, CallbackInfo ci) {
+    private void read(@NotNull CompoundTag compound, CallbackInfo ci) {
         this.bossSlaves$isBoss = compound.getBoolean("BossSlavesIsBoss");
         this.boss$slaves = compound.contains("BossSlaves") ? IntSets.synchronize(new IntOpenHashSet(compound.getIntArray("BossSlaves"))) : null;
         this.boss$setSlave(compound.getBoolean("BossSlavesIsSlave"));
