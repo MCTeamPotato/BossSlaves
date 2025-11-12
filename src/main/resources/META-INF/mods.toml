@@ -1,0 +1,13 @@
+modLoader = "javafml"
+loaderVersion = "[36,)"
+#issueTrackerURL = ""
+license = "MIT"
+
+[[mods]]
+modId = "bossslaves"
+version = "${version}"
+displayName = "BossSlaves"
+authors = "Kall"
+description = '''
+'''
+#logoFile = ""
