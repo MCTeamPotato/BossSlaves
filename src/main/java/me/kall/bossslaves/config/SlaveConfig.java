@@ -1,5 +1,6 @@
 package me.kall.bossslaves.config;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.kall.bossslaves.BossSlaves;
@@ -22,7 +23,7 @@ public class SlaveConfig {
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.push(BossSlaves.MOD_NAME);
-        SLAVES = builder.comment("Entry format: bossRegistryName->slave1RegistryName,weight;slave2RegistryName,weight;...;slaveXRegistryName,weight->maxSlavesCount", "Weight is omittable.").defineListAllowEmpty("BossSlavesEntries", Lists.newArrayList("minecraft:wither->minecraft:wither_skeleton;minecraft:skeleton->4", "minecraft:ender_dragon->minecraft:enderman->4"), obj -> true);
+        SLAVES = builder.comment("Entry format: bossRegistryName->slave1RegistryName,weight;slave2RegistryName,weight;...;slaveXRegistryName,weight->maxSlavesCount", "Weight is omittable.").defineListAllowEmpty("BossSlavesEntries", Lists.newArrayList("minecraft:wither->minecraft:wither_skeleton;minecraft:skeleton->4", "minecraft:ender_dragon->minecraft:enderman->4"), Predicates.alwaysTrue());
         builder.pop();
         INSTANCE = builder.build();
     }
