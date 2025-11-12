@@ -44,7 +44,7 @@ public abstract class LivingEntityMixin implements Boss, Slave {
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
     private void read(CompoundTag compound, CallbackInfo ci) {
         this.bossSlaves$isBoss = compound.getBoolean("BossSlavesIsBoss");
-        this.boss$slaves = compound.contains("BossSlaves") ? new IntOpenHashSet(compound.getIntArray("BossSlaves")) : null;
+        this.boss$slaves = compound.contains("BossSlaves") ? IntSets.synchronize(new IntOpenHashSet(compound.getIntArray("BossSlaves"))) : null;
         this.boss$setSlave(compound.getBoolean("BossSlavesIsSlave"));
         this.boss$setSlaveOwner(compound.contains("BossSlaveOwner") ? compound.getInt("BossSlaveOwner") : -1);
     }
